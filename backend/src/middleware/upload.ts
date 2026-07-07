@@ -20,10 +20,10 @@ const csvFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.
   }
 };
 
-const isProduction = process.env.NODE_ENV === 'production';
+const useCloudinary = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
 
 export const uploadImage = multer({
-  storage: isProduction
+  storage: useCloudinary
     ? new CloudinaryStorage({
         cloudinary,
         params: {
