@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ApiService } from '../shared/services/api.service';
 import { Product } from '../models/product.model';
 import { Category } from '../models/category.model';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-edit-product-dialog',
@@ -40,7 +41,7 @@ import { Category } from '../models/category.model';
         <label>Product Image (optional)</label>
         <input type="file" (change)="onFileSelected($event)" accept="image/*" />
         <div *ngIf="existingImage" class="current-image">
-          <img [src]="'http://localhost:3000' + existingImage" alt="Current image" />
+          <img [src]="apiBaseUrl + existingImage" alt="Current image" />
           <span>Current image</span>
         </div>
       </div>
@@ -75,6 +76,7 @@ import { Category } from '../models/category.model';
   `],
 })
 export class EditProductDialogComponent {
+  apiBaseUrl = environment.apiUrl.replace('/api', '');
   product: { name: string; price: number; categoryId: string };
   existingImage?: string;
   selectedFile: File | null = null;

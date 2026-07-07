@@ -17,6 +17,7 @@ import { ConfirmDialogComponent } from '../shared/components/confirm-dialog/conf
 import { ApiService } from '../shared/services/api.service';
 import { Product } from '../models/product.model';
 import { Category } from '../models/category.model';
+import { environment } from '../../environments/environment';
 import { CreateProductDialogComponent } from './create-product-dialog.component';
 import { EditProductDialogComponent } from './edit-product-dialog.component';
 
@@ -103,7 +104,7 @@ import { EditProductDialogComponent } from './edit-product-dialog.component';
               <td mat-cell *matCellDef="let product">
                 <img
                   *ngIf="product.image"
-                  [src]="'http://localhost:3000' + product.image"
+                  [src]="apiBaseUrl + product.image"
                   class="product-image"
                   alt="Product"
                 />
@@ -207,6 +208,7 @@ import { EditProductDialogComponent } from './edit-product-dialog.component';
 export class ProductsComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
+  apiBaseUrl = environment.apiUrl.replace('/api', '');
   displayedColumns = ['name', 'category', 'price', 'image', 'createdAt', 'actions'];
   dataSource = new MatTableDataSource<Product>([]);
   categories: Category[] = [];

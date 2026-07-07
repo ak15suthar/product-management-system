@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+.vercel/
 
 # Environment variables
 .env
@@ -24,6 +25,7 @@ Thumbs.db
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/mcp.json
 .history/
 
 # Angular

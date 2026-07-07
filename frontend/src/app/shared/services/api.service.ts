@@ -11,12 +11,13 @@ import {
 } from '../../models/product.model';
 import { User } from '../../models/user.model';
 import { Category, CreateCategoryRequest, UpdateCategoryRequest } from '../../models/category.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ApiService {
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
