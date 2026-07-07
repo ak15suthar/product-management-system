@@ -104,9 +104,10 @@ import { EditProductDialogComponent } from './edit-product-dialog.component';
               <td mat-cell *matCellDef="let product">
                 <img
                   *ngIf="product.image"
-                  [src]="apiBaseUrl + product.image"
+                  [src]="product.image"
                   class="product-image"
                   alt="Product"
+                  (error)="onImageError($event)"
                 />
                 <span *ngIf="!product.image" class="no-image">No image</span>
               </td>
@@ -208,7 +209,7 @@ import { EditProductDialogComponent } from './edit-product-dialog.component';
 export class ProductsComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  apiBaseUrl = environment.apiUrl.replace('/api', '');
+  apiBaseUrl = '';
   displayedColumns = ['name', 'category', 'price', 'image', 'createdAt', 'actions'];
   dataSource = new MatTableDataSource<Product>([]);
   categories: Category[] = [];
@@ -345,5 +346,9 @@ export class ProductsComponent implements OnInit {
         this.snackBar.open(err.error?.message || 'Failed to delete product', 'Close', { duration: 5000 });
       },
     });
+  }
+
+  onImageError(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
   }
 }

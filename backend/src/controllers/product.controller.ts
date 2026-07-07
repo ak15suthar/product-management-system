@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
+import path from 'path';
 import { ProductService } from '../services/product.service';
 import { sendSuccess, sendPaginated } from '../utils/response';
+
+function getImageUrl(file: Express.Multer.File): string {
+  const fullPath = (file as any).path || `/uploads/${file.filename}`;
+  if (fullPath.startsWith('http')) return fullPath;
+  const normalized = fullPath.replace(/\\/g, '/');
+  const uploadsIdx = normalized.indexOf('/uploads/');
+  return uploadsIdx >= 0 ? normalized.slice(uploadsIdx) : `/uploads/${file.filename}`;
+}
 
 export class ProductController {
   private productService: ProductService;
@@ -11,7 +20,7 @@ export class ProductController {
 
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const imageData = req.file ? `/uploads/${req.file.filename}` : undefined;
+      const imageData = req.file ? getImageUrl(req.file) : undefined;
       const product = await this.productService.create({
         ...req.body,
         image: imageData,
@@ -48,7 +57,7 @@ export class ProductController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const imageData = req.file ? `/uploads/${req.file.filename}` : undefined;
+      const imageData = req.file ? getImageUrl(req.file) : undefined;
       const product = await this.productService.update(parseInt(String(req.params.id)), {
         ...req.body,
         ...(imageData && { image: imageData }),
@@ -75,7 +84,7 @@ export class ProductController {
         return;
       }
 
-      const result = await this.productService.bulkUpload(req.file.path);
+      const result = await this.productService.bulkUploadBuffer(req.file.buffer);
       sendSuccess(res, result, 'Bulk upload completed');
     } catch (error) {
       next(error);

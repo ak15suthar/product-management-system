@@ -40,8 +40,12 @@ import { environment } from '../../environments/environment';
       <div class="file-upload">
         <label>Product Image (optional)</label>
         <input type="file" (change)="onFileSelected($event)" accept="image/*" />
-        <div *ngIf="existingImage" class="current-image">
-          <img [src]="apiBaseUrl + existingImage" alt="Current image" />
+        <div *ngIf="previewUrl" class="preview">
+          <img [src]="previewUrl" alt="New preview" />
+          <span>New image</span>
+        </div>
+        <div *ngIf="!previewUrl && existingImage" class="preview">
+          <img [src]="existingImage" alt="Current image" />
           <span>Current image</span>
         </div>
       </div>
@@ -63,22 +67,29 @@ import { environment } from '../../environments/environment';
       margin-bottom: 0.5rem;
       color: #666;
     }
-    .current-image {
+    .preview {
       margin-top: 0.5rem;
     }
-    .current-image img {
-      width: 80px;
-      height: 80px;
+    .preview img {
+      max-width: 150px;
+      max-height: 150px;
       object-fit: cover;
       border-radius: 4px;
-      margin-right: 0.5rem;
+      border: 1px solid #ddd;
+    }
+    .preview span {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: #999;
     }
   `],
 })
 export class EditProductDialogComponent {
-  apiBaseUrl = environment.apiUrl.replace('/api', '');
+  apiBaseUrl = '';
   product: { name: string; price: number; categoryId: string };
   existingImage?: string;
+  previewUrl: string | null = null;
   selectedFile: File | null = null;
   categories: Category[];
   loading = false;
@@ -93,12 +104,18 @@ export class EditProductDialogComponent {
       price: data.product.price,
       categoryId: data.product.category?.uuid || '',
     };
-    this.existingImage = data.product.image;
+    this.existingImage = data.product.image || undefined;
     this.categories = data.categories;
   }
 
   onFileSelected(event: any): void {
-    this.selectedFile = event.target.files[0];
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = () => { this.previewUrl = reader.result as string; };
+      reader.readAsDataURL(file);
+    }
   }
 
   onSubmit(): void {

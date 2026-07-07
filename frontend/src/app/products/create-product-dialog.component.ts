@@ -5,6 +5,7 @@ import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { ApiService } from '../shared/services/api.service';
 import { Category } from '../models/category.model';
@@ -12,7 +13,7 @@ import { Category } from '../models/category.model';
 @Component({
   selector: 'app-create-product-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatSelectModule],
+  imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatSelectModule],
   template: `
     <h2 mat-dialog-title>Create Product</h2>
     <mat-dialog-content>
@@ -38,6 +39,12 @@ import { Category } from '../models/category.model';
       <div class="file-upload">
         <label>Product Image (optional)</label>
         <input type="file" (change)="onFileSelected($event)" accept="image/*" />
+        <div *ngIf="previewUrl" class="preview">
+          <img [src]="previewUrl" alt="Preview" />
+          <button mat-icon-button color="warn" (click)="clearFile()" type="button">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -57,11 +64,28 @@ import { Category } from '../models/category.model';
       margin-bottom: 0.5rem;
       color: #666;
     }
+    .preview {
+      position: relative;
+      display: inline-block;
+      margin-top: 0.5rem;
+    }
+    .preview img {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .preview button {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+    }
   `],
 })
 export class CreateProductDialogComponent {
   product = { name: '', price: 0, categoryId: '' };
   selectedFile: File | null = null;
+  previewUrl: string | null = null;
   categories: Category[];
   loading = false;
 
@@ -74,7 +98,18 @@ export class CreateProductDialogComponent {
   }
 
   onFileSelected(event: any): void {
-    this.selectedFile = event.target.files[0];
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = () => { this.previewUrl = reader.result as string; };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  clearFile(): void {
+    this.selectedFile = null;
+    this.previewUrl = null;
   }
 
   onSubmit(): void {

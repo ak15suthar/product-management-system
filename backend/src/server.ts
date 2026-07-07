@@ -4,11 +4,12 @@ import { prisma } from './utils/prisma';
 import fs from 'fs';
 import path from 'path';
 
-const uploadDir = path.join(__dirname, 'uploads');
-const exportDir = path.join(__dirname, 'exports');
-
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+try {
+  const uploadDir = path.join(__dirname, 'uploads');
+  const exportDir = path.join(__dirname, 'exports');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+} catch {}
 
 const startServer = async (): Promise<void> => {
   try {

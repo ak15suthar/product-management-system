@@ -5,6 +5,7 @@ import ExcelJS from 'exceljs';
 import { Readable } from 'stream';
 import { ProductRepository } from '../repositories/product.repository';
 import { CategoryRepository } from '../repositories/category.repository';
+import { UserRepository } from '../repositories/user.repository';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { BATCH_SIZE } from '../constants';
 import { BulkUploadResult } from '../types';
@@ -170,6 +171,86 @@ export class ProductService {
     });
   }
 
+  async bulkUploadBuffer(buffer: Buffer): Promise<BulkUploadResult> {
+    return new Promise((resolve, reject) => {
+      const validRows: Array<{ name: string; price: number; categoryName: string; image?: string }> = [];
+      const errors: Array<{ row: number; message: string; data?: Record<string, unknown> }> = [];
+      let rowNumber = 0;
+
+      const stream = Readable.from(buffer);
+      stream
+        .pipe(csvParser())
+        .on('data', (row) => {
+          rowNumber++;
+          const name = row.name?.trim();
+          const price = parseFloat(row.price);
+          const categoryName = row.category?.trim();
+          const image = row.image?.trim() || undefined;
+
+          if (!name || isNaN(price) || !categoryName) {
+            errors.push({ row: rowNumber, message: 'Missing required fields (name, price, category)', data: row });
+            return;
+          }
+          if (price <= 0) {
+            errors.push({ row: rowNumber, message: 'Price must be greater than 0', data: row });
+            return;
+          }
+          validRows.push({ name, price, categoryName, image });
+        })
+        .on('end', async () => {
+          try {
+            let inserted = 0;
+            let failed = 0;
+
+            const categoryNames = [...new Set(validRows.map((r) => r.categoryName))];
+            const existingCategories = await this.categoryRepo.findManyByNames(categoryNames);
+            const categoryMap = new Map<string, number>();
+            existingCategories.forEach((c) => categoryMap.set(c.name.toLowerCase(), c.id));
+
+            const missingNames = categoryNames.filter((n) => !categoryMap.has(n.toLowerCase()));
+            if (missingNames.length > 0) {
+              await this.categoryRepo.createMany(missingNames.map((name) => ({ name })));
+              const refreshed = await this.categoryRepo.findManyByNames(missingNames);
+              refreshed.forEach((c) => categoryMap.set(c.name.toLowerCase(), c.id));
+            }
+
+            for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+              const batch = validRows.slice(i, i + BATCH_SIZE);
+              const products: Array<{ name: string; price: number; categoryId: number; image?: string }> = [];
+
+              for (const item of batch) {
+                const categoryId = categoryMap.get(item.categoryName.toLowerCase());
+                if (!categoryId) {
+                  failed++;
+                  errors.push({ row: i + batch.indexOf(item) + 1, message: `Category "${item.categoryName}" not found`, data: item });
+                  continue;
+                }
+                products.push({ name: item.name, price: item.price, categoryId, image: item.image });
+              }
+
+              if (products.length > 0) {
+                try {
+                  const result = await this.productRepo.createMany(products);
+                  inserted += result.count;
+                  failed += products.length - result.count;
+                } catch (err) {
+                  failed += products.length;
+                  errors.push({ row: i + 1, message: err instanceof Error ? err.message : 'Batch insert failed' });
+                }
+              }
+            }
+
+            resolve({ inserted, failed, errors });
+          } catch (err) {
+            reject(err);
+          }
+        })
+        .on('error', (err) => {
+          reject(err);
+        });
+    });
+  }
+
   async exportCsv(): Promise<Readable> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Products');
@@ -225,17 +306,13 @@ export class ProductService {
   }
 
   async getDashboard() {
-    const [userRepo, categoryRepo, productRepo] = await Promise.all([
-      import('../repositories/user.repository').then((m) => new m.UserRepository()),
-      Promise.resolve(this.categoryRepo),
-      Promise.resolve(this.productRepo),
-    ]);
+    const userRepo = new UserRepository();
 
     const [totalUsers, totalCategories, totalProducts, recentProducts] = await Promise.all([
       userRepo['db'].user.count(),
-      categoryRepo['db'].category.count(),
-      productRepo.count(),
-      productRepo.findRecent(5),
+      this.categoryRepo['db'].category.count(),
+      this.productRepo.count(),
+      this.productRepo.findRecent(5),
     ]);
 
     return {
