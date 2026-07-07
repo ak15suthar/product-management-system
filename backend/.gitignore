@@ -1,0 +1,45 @@
+# Dependencies
+/node_modules
+
+# Build output
+/dist
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log
+yarn-error.log
+
+# Uploads and exports (user-generated files)
+/src/uploads/*
+!/src/uploads/.gitkeep
+/src/exports/*
+!/src/exports/.gitkeep
+
+# Prisma
+prisma/migrations/**/migration_lock.toml
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+/coverage
