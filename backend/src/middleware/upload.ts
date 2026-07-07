@@ -29,7 +29,6 @@ export const uploadImage = multer({
         params: {
           folder: 'pms/products',
           allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-          transformation: [{ width: 800, height: 800, crop: 'limit' }],
         } as any,
       })
     : multer.diskStorage({
