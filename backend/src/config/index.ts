@@ -14,3 +14,9 @@ export const config = {
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
 };
+
+export function getCorsOrigins(): string[] | string {
+  const origins = config.corsOrigin.split(',').map((o) => o.trim());
+  if (origins.length === 1) return origins[0];
+  return origins;
+}

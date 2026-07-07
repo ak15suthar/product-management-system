@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 import { validate, registerSchema, loginSchema } from '../validators';
+import { authLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 const authController = new AuthController();
@@ -30,7 +31,7 @@ const authController = new AuthController();
  *       201:
  *         description: User registered successfully
  */
-router.post('/register', validate(registerSchema), authController.register);
+router.post('/register', authLimiter, validate(registerSchema), authController.register);
 
 /**
  * @swagger
@@ -54,7 +55,7 @@ router.post('/register', validate(registerSchema), authController.register);
  *       200:
  *         description: User logged in successfully
  */
-router.post('/login', validate(loginSchema), authController.login);
+router.post('/login', authLimiter, validate(loginSchema), authController.login);
 
 /**
  * @swagger

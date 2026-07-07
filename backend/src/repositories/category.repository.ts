@@ -26,6 +26,19 @@ export class CategoryRepository {
     });
   }
 
+  async findManyByNames(names: string[]): Promise<Category[]> {
+    return this.db.category.findMany({
+      where: {
+        name: { in: names, mode: 'insensitive' },
+      },
+    });
+  }
+
+  async createMany(data: Array<{ name: string }>): Promise<number> {
+    const result = await this.db.category.createMany({ data, skipDuplicates: true });
+    return result.count;
+  }
+
   async findAll(params: { page?: number; limit?: number; search?: string }) {
     const page = params.page || 1;
     const limit = params.limit || 10;

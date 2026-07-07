@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { UserController } from '../controllers/user.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate, registerSchema, updateUserSchema } from '../validators';
+import { readLimiter, writeLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 const userController = new UserController();
@@ -35,7 +36,7 @@ router.use(authenticate);
  *       200:
  *         description: List of users
  */
-router.get('/', userController.list);
+router.get('/', readLimiter, userController.list);
 
 /**
  * @swagger
@@ -55,7 +56,7 @@ router.get('/', userController.list);
  *       200:
  *         description: User details
  */
-router.get('/:id', userController.getById);
+router.get('/:id', readLimiter, userController.getById);
 
 /**
  * @swagger
@@ -85,7 +86,7 @@ router.get('/:id', userController.getById);
  *       201:
  *         description: User created successfully
  */
-router.post('/', validate(registerSchema), userController.create);
+router.post('/', writeLimiter, validate(registerSchema), userController.create);
 
 /**
  * @swagger
@@ -118,7 +119,7 @@ router.post('/', validate(registerSchema), userController.create);
  *       200:
  *         description: User updated successfully
  */
-router.put('/:id', validate(updateUserSchema), userController.update);
+router.put('/:id', writeLimiter, validate(updateUserSchema), userController.update);
 
 /**
  * @swagger
@@ -138,6 +139,6 @@ router.put('/:id', validate(updateUserSchema), userController.update);
  *       200:
  *         description: User deleted successfully
  */
-router.delete('/:id', userController.delete);
+router.delete('/:id', writeLimiter, userController.delete);
 
 export default router;

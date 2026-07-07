@@ -92,7 +92,7 @@ export class ProductService {
 
   async bulkUpload(filePath: string): Promise<BulkUploadResult> {
     return new Promise((resolve, reject) => {
-      const results: Array<{ name: string; price: number; categoryName: string; image?: string }> = [];
+      const validRows: Array<{ name: string; price: number; categoryName: string; image?: string }> = [];
       const errors: Array<{ row: number; message: string; data?: Record<string, unknown> }> = [];
       let rowNumber = 0;
 
@@ -106,59 +106,59 @@ export class ProductService {
           const image = row.image?.trim() || undefined;
 
           if (!name || isNaN(price) || !categoryName) {
-            errors.push({
-              row: rowNumber,
-              message: `Missing required fields (name, price, category)`,
-              data: row,
-            });
+            errors.push({ row: rowNumber, message: 'Missing required fields (name, price, category)', data: row });
             return;
           }
-
           if (price <= 0) {
-            errors.push({
-              row: rowNumber,
-              message: 'Price must be greater than 0',
-              data: row,
-            });
+            errors.push({ row: rowNumber, message: 'Price must be greater than 0', data: row });
             return;
           }
-
-          results.push({ name, price, categoryName, image });
+          validRows.push({ name, price, categoryName, image });
         })
         .on('end', async () => {
           try {
             let inserted = 0;
             let failed = 0;
 
-            for (let i = 0; i < results.length; i += BATCH_SIZE) {
-              const batch = results.slice(i, i + BATCH_SIZE);
+            const categoryNames = [...new Set(validRows.map((r) => r.categoryName))];
+            const existingCategories = await this.categoryRepo.findManyByNames(categoryNames);
+            const categoryMap = new Map<string, number>();
+            existingCategories.forEach((c) => categoryMap.set(c.name.toLowerCase(), c.id));
+
+            const missingNames = categoryNames.filter((n) => !categoryMap.has(n.toLowerCase()));
+            if (missingNames.length > 0) {
+              await this.categoryRepo.createMany(missingNames.map((name) => ({ name })));
+              const refreshed = await this.categoryRepo.findManyByNames(missingNames);
+              refreshed.forEach((c) => categoryMap.set(c.name.toLowerCase(), c.id));
+            }
+
+            for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+              const batch = validRows.slice(i, i + BATCH_SIZE);
+              const products: Array<{ name: string; price: number; categoryId: number; image?: string }> = [];
 
               for (const item of batch) {
-                try {
-                  let category = await this.categoryRepo.findByName(item.categoryName);
-                  if (!category) {
-                    category = await this.categoryRepo.create({ name: item.categoryName });
-                  }
-
-                  await this.productRepo.create({
-                    name: item.name,
-                    price: item.price,
-                    categoryId: category.id,
-                    image: item.image,
-                  });
-                  inserted++;
-                } catch (err) {
+                const categoryId = categoryMap.get(item.categoryName.toLowerCase());
+                if (!categoryId) {
                   failed++;
-                  errors.push({
-                    row: i + batch.indexOf(item) + 1,
-                    message: err instanceof Error ? err.message : 'Unknown error',
-                    data: item,
-                  });
+                  errors.push({ row: i + batch.indexOf(item) + 1, message: `Category "${item.categoryName}" not found`, data: item });
+                  continue;
+                }
+                products.push({ name: item.name, price: item.price, categoryId, image: item.image });
+              }
+
+              if (products.length > 0) {
+                try {
+                  const result = await this.productRepo.createMany(products);
+                  inserted += result.count;
+                  failed += products.length - result.count;
+                } catch (err) {
+                  failed += products.length;
+                  errors.push({ row: i + 1, message: err instanceof Error ? err.message : 'Batch insert failed' });
                 }
               }
             }
 
-            fs.unlinkSync(filePath);
+            try { fs.unlinkSync(filePath); } catch {}
             resolve({ inserted, failed, errors });
           } catch (err) {
             reject(err);

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { CategoryController } from '../controllers/category.controller';
 import { authenticate } from '../middleware/auth';
 import { validate, createCategorySchema, updateCategorySchema } from '../validators';
+import { readLimiter, writeLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 const categoryController = new CategoryController();
@@ -35,7 +36,7 @@ router.use(authenticate);
  *       200:
  *         description: List of categories
  */
-router.get('/', categoryController.list);
+router.get('/', readLimiter, categoryController.list);
 
 /**
  * @swagger
@@ -49,7 +50,7 @@ router.get('/', categoryController.list);
  *       200:
  *         description: All categories
  */
-router.get('/all', categoryController.listAll);
+router.get('/all', readLimiter, categoryController.listAll);
 
 /**
  * @swagger
@@ -69,7 +70,7 @@ router.get('/all', categoryController.listAll);
  *       200:
  *         description: Category details
  */
-router.get('/:id', categoryController.getById);
+router.get('/:id', readLimiter, categoryController.getById);
 
 /**
  * @swagger
@@ -93,7 +94,7 @@ router.get('/:id', categoryController.getById);
  *       201:
  *         description: Category created successfully
  */
-router.post('/', validate(createCategorySchema), categoryController.create);
+router.post('/', writeLimiter, validate(createCategorySchema), categoryController.create);
 
 /**
  * @swagger
@@ -122,7 +123,7 @@ router.post('/', validate(createCategorySchema), categoryController.create);
  *       200:
  *         description: Category updated successfully
  */
-router.put('/:id', validate(updateCategorySchema), categoryController.update);
+router.put('/:id', writeLimiter, validate(updateCategorySchema), categoryController.update);
 
 /**
  * @swagger
@@ -142,6 +143,6 @@ router.put('/:id', validate(updateCategorySchema), categoryController.update);
  *       200:
  *         description: Category deleted successfully
  */
-router.delete('/:id', categoryController.delete);
+router.delete('/:id', writeLimiter, categoryController.delete);
 
 export default router;

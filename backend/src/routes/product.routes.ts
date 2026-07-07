@@ -3,6 +3,7 @@ import { ProductController } from '../controllers/product.controller';
 import { authenticate } from '../middleware/auth';
 import { validate, validateQuery, createProductSchema, updateProductSchema, paginationSchema } from '../validators';
 import { uploadImage, uploadCsv } from '../middleware/upload';
+import { readLimiter, writeLimiter, exportLimiter, uploadLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 const productController = new ProductController();
@@ -53,7 +54,7 @@ router.use(authenticate);
  *       200:
  *         description: Paginated list of products
  */
-router.get('/', validateQuery(paginationSchema), productController.list);
+router.get('/', readLimiter, validateQuery(paginationSchema), productController.list);
 
 /**
  * @swagger
@@ -67,7 +68,7 @@ router.get('/', validateQuery(paginationSchema), productController.list);
  *       200:
  *         description: CSV file
  */
-router.get('/export/csv', productController.exportCsv);
+router.get('/export/csv', exportLimiter, productController.exportCsv);
 
 /**
  * @swagger
@@ -81,7 +82,7 @@ router.get('/export/csv', productController.exportCsv);
  *       200:
  *         description: XLSX file
  */
-router.get('/export/xlsx', productController.exportXlsx);
+router.get('/export/xlsx', exportLimiter, productController.exportXlsx);
 
 /**
  * @swagger
@@ -105,7 +106,7 @@ router.get('/export/xlsx', productController.exportXlsx);
  *       200:
  *         description: Upload summary
  */
-router.post('/bulk-upload', uploadCsv.single('file'), productController.bulkUpload);
+router.post('/bulk-upload', uploadLimiter, uploadCsv.single('file'), productController.bulkUpload);
 
 /**
  * @swagger
@@ -125,7 +126,7 @@ router.post('/bulk-upload', uploadCsv.single('file'), productController.bulkUplo
  *       200:
  *         description: Product details
  */
-router.get('/:id', productController.getById);
+router.get('/:id', readLimiter, productController.getById);
 
 /**
  * @swagger
@@ -157,7 +158,7 @@ router.get('/:id', productController.getById);
  *       201:
  *         description: Product created successfully
  */
-router.post('/', uploadImage.single('image'), validate(createProductSchema), productController.create);
+router.post('/', writeLimiter, uploadImage.single('image'), validate(createProductSchema), productController.create);
 
 /**
  * @swagger
@@ -194,7 +195,7 @@ router.post('/', uploadImage.single('image'), validate(createProductSchema), pro
  *       200:
  *         description: Product updated successfully
  */
-router.put('/:id', uploadImage.single('image'), validate(updateProductSchema), productController.update);
+router.put('/:id', writeLimiter, uploadImage.single('image'), validate(updateProductSchema), productController.update);
 
 /**
  * @swagger
@@ -214,6 +215,6 @@ router.put('/:id', uploadImage.single('image'), validate(updateProductSchema), p
  *       200:
  *         description: Product deleted successfully
  */
-router.delete('/:id', productController.delete);
+router.delete('/:id', writeLimiter, productController.delete);
 
 export default router;

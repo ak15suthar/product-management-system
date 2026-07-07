@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { DashboardController } from '../controllers/dashboard.controller';
 import { authenticate } from '../middleware/auth';
+import { readLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 const dashboardController = new DashboardController();
@@ -19,6 +20,6 @@ router.use(authenticate);
  *       200:
  *         description: Dashboard statistics
  */
-router.get('/', dashboardController.getStats);
+router.get('/', readLimiter, dashboardController.getStats);
 
 export default router;
